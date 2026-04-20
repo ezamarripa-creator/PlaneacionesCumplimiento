@@ -20,23 +20,19 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl shadow-lg text-white">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-                    <i class="fas fa-chart-pie text-emerald-400"></i> Análisis de Cumplimiento Académico en Planeaciones Didácticas
+                    <i class="fas fa-chart-pie text-emerald-400"></i> Análisis de Cumplimiento Académico
                 </h1>
-                <p class="text-slate-400 text-sm italic">Módulo de Visualización y Análisis (GitHub Data Sync)</p>
+                <p class="text-slate-400 text-sm italic">Información Actualizada al 1er parcial de semestre 2026B </p>
                 <div class="mt-1 inline-flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registros cargados:</span>
                     <span id="total-raw" class="text-xs font-black text-emerald-400">0</span>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-3">
-                <input type="file" id="jsonInput" accept=".json" class="hidden">
-                <button onclick="document.getElementById('jsonInput').click()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-md">
-                    <i class="fas fa-file-upload"></i> Cargar Datos Local
-                </button>
                 <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-md">
                     <i class="fas fa-file-excel"></i> Exportar Excel
                 </button>
-                <button onclick="clearData()" class="text-slate-400 hover:text-red-500 transition-colors px-2"><i class="fas fa-trash-alt"></i></button>
+                <button onclick="clearData()" class="text-slate-400 hover:text-red-500 transition-colors px-2" title="Limpiar caché local"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>
     </div>
@@ -60,11 +56,11 @@
             <h3 id="kpi-total" class="text-3xl font-black text-slate-800">0</h3>
         </div>
         <div class="glass-card p-5 rounded-xl border-b-4 border-emerald-500 text-center">
-            <p class="text-[10px] font-black text-slate-400 uppercase">% Cumplimiento (Aprobadas)</p>
+            <p class="text-[10px] font-black text-slate-400 uppercase">% Cumplimiento</p>
             <h3 id="kpi-cumplimiento" class="text-3xl font-black text-slate-800">0%</h3>
         </div>
         <div class="glass-card p-5 rounded-xl border-b-4 border-indigo-500 text-center">
-            <p class="text-[10px] font-black text-slate-400 uppercase">Materias Distintas</p>
+            <p class="text-[10px] font-black text-slate-400 uppercase">Materias</p>
             <h3 id="kpi-materias" class="text-3xl font-black text-slate-800">0</h3>
         </div>
         <div class="glass-card p-5 rounded-xl border-b-4 border-amber-500 text-center">
@@ -75,15 +71,12 @@
 
     <div class="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div class="glass-card p-4 rounded-xl shadow-sm">
-            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-3 text-center">Distribución por Semestre</h4>
             <div id="chart-semestre" style="height: 250px;"></div>
         </div>
         <div class="glass-card p-4 rounded-xl shadow-sm">
-            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-3 text-center">Planeaciones por Parcial</h4>
             <div id="chart-parcial" style="height: 250px;"></div>
         </div>
         <div class="glass-card p-4 rounded-xl shadow-sm">
-            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-3 text-center">% Cumplimiento General</h4>
             <div id="chart-gauge" style="height: 250px;"></div>
         </div>
     </div>
@@ -91,14 +84,14 @@
     <div class="max-w-[1600px] mx-auto mb-10">
         <div class="glass-card rounded-xl shadow-lg overflow-hidden border border-slate-200">
             <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                <h4 class="font-bold text-slate-600 text-xs uppercase">Listado Detallado de Registros Únicos</h4>
+                <h4 class="font-bold text-slate-600 text-xs uppercase">Listado Detallado</h4>
                 <span id="row-count" class="text-[11px] font-black bg-slate-800 text-white px-4 py-1 rounded-full">0 REGISTROS</span>
             </div>
             <div class="table-container">
                 <table id="main-table" class="w-full text-left border-collapse">
                     <thead class="bg-slate-100 sticky top-0 z-10">
                         <tr class="text-[10px] uppercase text-slate-500 font-black">
-                            <th class="px-6 py-4">ID Plantel</th>
+                            <th class="px-6 py-4">ID</th>
                             <th class="px-6 py-4">Plantel</th>
                             <th class="px-6 py-4">Docente</th>
                             <th class="px-6 py-4">Materia</th>
@@ -116,31 +109,28 @@
     <script>
         let rawData = [];
         let filteredUnique = [];
-        const GITHUB_DATA_URL = 'datos.json'; // URL relativa al archivo en GitHub
+        const DATA_URL = './datos.json'; // URL relativa para GitHub Pages
 
         window.onload = () => {
-            fetchData();
+            fetchAutoData();
         };
 
-        // Función para obtener datos desde GitHub
-        async function fetchData() {
+        // Función principal que jala los datos de GitHub automáticamente
+        async function fetchAutoData() {
             try {
-                const response = await fetch(GITHUB_DATA_URL);
-                if (!response.ok) throw new Error("No se pudo cargar el archivo datos.json");
-                
+                const response = await fetch(`${DATA_URL}?t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error("Archivo datos.json no encontrado");
                 const data = await response.json();
                 processIncomingData(data);
-                console.log("Datos cargados exitosamente desde GitHub");
+                console.log("Datos sincronizados desde GitHub.");
             } catch (err) {
-                console.warn("Carga desde GitHub fallida, intentando con localStorage:", err.message);
+                console.warn("Error de sincronización:", err.message);
+                // Intento de respaldo con datos guardados previamente
                 const stored = localStorage.getItem('academicData');
-                if (stored) {
-                    processIncomingData(JSON.parse(stored));
-                }
+                if (stored) processIncomingData(JSON.parse(stored));
             }
         }
 
-        // Procesa y limpia los datos cargados
         function processIncomingData(data) {
             rawData = Array.isArray(data) ? data : [data];
             localStorage.setItem('academicData', JSON.stringify(rawData));
@@ -148,17 +138,6 @@
             populateFilters();
             applyFilters();
         }
-
-        document.getElementById('jsonInput').addEventListener('change', function(e) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    processIncomingData(data);
-                } catch (err) { alert("Error en el archivo JSON"); }
-            };
-            reader.readAsText(e.target.files[0]);
-        });
 
         function populateFilters() {
             const fields = {
@@ -191,7 +170,7 @@
 
             const seen = new Set();
             filteredUnique = filtered.filter(item => {
-                const key = `${String(item.plantel).trim()}-${item.idMateria}-${item.semestre}-${String(item.turno).trim()}-${String(item.grupos).trim()}-${item.parcial}`;
+                const key = `${String(item.plantel).trim()}-${item.idMateria}-${item.semestre}-${item.turno}-${item.parcial}`;
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
@@ -201,24 +180,24 @@
         }
 
         function updateDashboard(data) {
-            const aprobadas = data.filter(d => String(d.Estatus).toLowerCase() === "aprobadas").length;
+            const aprobadas = data.filter(d => String(d.Estatus).toLowerCase().includes("aprobada")).length;
             const porcCumplimiento = data.length > 0 ? (aprobadas / data.length) * 100 : 0;
 
             document.getElementById('kpi-total').innerText = data.length;
             document.getElementById('kpi-cumplimiento').innerText = porcCumplimiento.toFixed(1) + '%';
             document.getElementById('kpi-materias').innerText = [...new Set(data.map(d => d.idMateria))].length;
             document.getElementById('kpi-docentes').innerText = [...new Set(data.map(d => d.docente))].length;
-            document.getElementById('row-count').innerText = `${data.length} REGISTROS ÚNICOS`;
+            document.getElementById('row-count').innerText = `${data.length} REGISTROS`;
 
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = data.map(d => `
                 <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-6 py-4 font-mono text-slate-500 text-[11px]">${d.idPlantel || 'N/A'}</td>
+                    <td class="px-6 py-4 font-mono text-slate-500 text-[10px]">${d.idPlantel || 'N/A'}</td>
                     <td class="px-6 py-4 text-slate-500 font-bold">${d.plantel}</td>
                     <td class="px-6 py-4 font-bold text-slate-800">${String(d.docente).trim()}</td>
                     <td class="px-6 py-4 text-slate-600 font-medium text-[11px]">${d.materia}</td>
                     <td class="px-6 py-4 text-center">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${String(d.Estatus).toLowerCase() === 'aprobadas' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${String(d.Estatus).toLowerCase().includes('aprobada') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">
                             ${d.Estatus}
                         </span>
                     </td>
@@ -231,66 +210,53 @@
         }
 
         function renderCharts(data, cumplimiento) {
-            const config = { responsive: true, displayModeBar: false };
             const layoutBase = { 
-                margin: { t: 20, b: 30, l: 30, r: 20 }, 
+                margin: { t: 40, b: 30, l: 30, r: 20 }, 
                 paper_bgcolor: 'rgba(0,0,0,0)', 
                 plot_bgcolor: 'rgba(0,0,0,0)', 
-                font: { size: 10 } 
+                font: { size: 10, family: 'Inter' } 
             };
 
             const semData = {}; data.forEach(d => semData[d.semestre + 'º'] = (semData[d.semestre + 'º'] || 0) + 1);
             Plotly.newPlot('chart-semestre', [{
                 x: Object.keys(semData), y: Object.values(semData),
-                type: 'bar', marker: { color: '#6366f1' }
-            }], layoutBase, config);
+                type: 'bar', marker: { color: '#6366f1' }, name: 'Semestre'
+            }], { ...layoutBase, title: 'POR SEMESTRE' }, { responsive: true, displayModeBar: false });
 
             const parData = {}; data.forEach(d => parData['P' + d.parcial] = (parData['P' + d.parcial] || 0) + 1);
             Plotly.newPlot('chart-parcial', [{
                 x: Object.keys(parData), y: Object.values(parData),
-                type: 'bar', marker: { color: '#f59e0b' }
-            }], layoutBase, config);
+                type: 'bar', marker: { color: '#f59e0b' }, name: 'Parcial'
+            }], { ...layoutBase, title: 'POR PARCIAL' }, { responsive: true, displayModeBar: false });
 
             Plotly.newPlot('chart-gauge', [{
                 type: "indicator",
                 mode: "gauge+number",
                 value: cumplimiento,
-                number: { suffix: "%", font: { size: 30 } },
+                title: { text: "CUMPLIMIENTO %", font: { size: 12 } },
                 gauge: {
-                    axis: { range: [0, 100], tickwidth: 1 },
+                    axis: { range: [0, 100] },
                     bar: { color: "#10b981" },
                     bgcolor: "white",
-                    borderwidth: 2,
-                    bordercolor: "#e2e8f0",
                     steps: [{ range: [0, 100], color: "#f1f5f9" }]
                 }
-            }], { ...layoutBase, margin: { t: 50, b: 20, l: 30, r: 30 } }, config);
+            }], { ...layoutBase, margin: { t: 60, b: 20 } }, { responsive: true });
         }
 
         function exportToExcel() {
-            if (filteredUnique.length === 0) return alert("No hay datos para exportar");
-            const headers = ["ID Plantel", "Plantel", "Docente", "Materia", "Estatus", "Semestre", "Turno", "Grupos", "Parcial"];
-            const rows = filteredUnique.map(d => [
-                d.idPlantel, d.plantel, String(d.docente).trim(), d.materia, d.Estatus, d.semestre, d.turno, String(d.grupos).trim(), d.parcial
-            ]);
-            
-            let csvContent = "\uFEFF";
-            csvContent += headers.join(",") + "\n";
-            rows.forEach(row => {
-                csvContent += row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(",") + "\n";
+            if (filteredUnique.length === 0) return alert("Sin datos");
+            let csv = "\uFEFFPlantel,Docente,Materia,Estatus,Semestre,Turno,Parcial\n";
+            filteredUnique.forEach(d => {
+                csv += `"${d.plantel}","${d.docente}","${d.materia}","${d.Estatus}","${d.semestre}","${d.turno}","${d.parcial}"\n`;
             });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "reporte_planeaciones_unicas.csv");
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = "reporte_academico.csv";
             link.click();
-            document.body.removeChild(link);
         }
 
-        function clearData() { if(confirm("¿Limpiar base de datos y recargar?")) { localStorage.clear(); location.reload(); } }
+        function clearData() { if(confirm("¿Limpiar caché y recargar?")) { localStorage.clear(); location.reload(); } }
     </script>
 </body>
 </html>
