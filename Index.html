@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Académico - Reporte Final</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; }
+        .table-container { max-height: 400px; overflow-y: auto; scrollbar-width: thin; }
+        select { border: 1px solid #cbd5e1 !important; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+
+    <div class="max-w-[1600px] mx-auto mb-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl shadow-lg text-white">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+                    <i class="fas fa-chart-pie text-emerald-400"></i> Análisis de Cumplimiento Académico en Planeaciones Didácticas
+                </h1>
+                <p class="text-slate-400 text-sm italic">Módulo de Visualización y Análisis (GitHub Data Sync)</p>
+                <div class="mt-1 inline-flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registros cargados:</span>
+                    <span id="total-raw" class="text-xs font-black text-emerald-400">0</span>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <input type="file" id="jsonInput" accept=".json" class="hidden">
+                <button onclick="document.getElementById('jsonInput').click()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-md">
+                    <i class="fas fa-file-upload"></i> Cargar Datos Local
+                </button>
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-md">
+                    <i class="fas fa-file-excel"></i> Exportar Excel
+                </button>
+                <button onclick="clearData()" class="text-slate-400 hover:text-red-500 transition-colors px-2"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto mb-6 glass-card p-5 rounded-xl shadow-sm">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Plantel</label><select id="f-plantel" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todos</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Docente</label><select id="f-docente" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todos</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Estatus</label><select id="f-estatus" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todos</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Materia</label><select id="f-materia" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todas</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Semestre</label><select id="f-semestre" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todos</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Turno</label><select id="f-turno" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todos</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Parcial</label><select id="f-parcial" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todos</option></select></div>
+            <div class="flex flex-col gap-1"><label class="text-[10px] font-black text-slate-500 uppercase">Fecha</label><select id="f-fecha" class="p-2 rounded-lg bg-white text-xs" onchange="applyFilters()"><option value="">Todas</option></select></div>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="glass-card p-5 rounded-xl border-b-4 border-blue-500 text-center">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Planeaciones Únicas</p>
+            <h3 id="kpi-total" class="text-3xl font-black text-slate-800">0</h3>
+        </div>
+        <div class="glass-card p-5 rounded-xl border-b-4 border-emerald-500 text-center">
+            <p class="text-[10px] font-black text-slate-400 uppercase">% Cumplimiento (Aprobadas)</p>
+            <h3 id="kpi-cumplimiento" class="text-3xl font-black text-slate-800">0%</h3>
+        </div>
+        <div class="glass-card p-5 rounded-xl border-b-4 border-indigo-500 text-center">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Materias Distintas</p>
+            <h3 id="kpi-materias" class="text-3xl font-black text-slate-800">0</h3>
+        </div>
+        <div class="glass-card p-5 rounded-xl border-b-4 border-amber-500 text-center">
+            <p class="text-[10px] font-black text-slate-400 uppercase">Docentes</p>
+            <h3 id="kpi-docentes" class="text-3xl font-black text-slate-800">0</h3>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="glass-card p-4 rounded-xl shadow-sm">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-3 text-center">Distribución por Semestre</h4>
+            <div id="chart-semestre" style="height: 250px;"></div>
+        </div>
+        <div class="glass-card p-4 rounded-xl shadow-sm">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-3 text-center">Planeaciones por Parcial</h4>
+            <div id="chart-parcial" style="height: 250px;"></div>
+        </div>
+        <div class="glass-card p-4 rounded-xl shadow-sm">
+            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-3 text-center">% Cumplimiento General</h4>
+            <div id="chart-gauge" style="height: 250px;"></div>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto mb-10">
+        <div class="glass-card rounded-xl shadow-lg overflow-hidden border border-slate-200">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h4 class="font-bold text-slate-600 text-xs uppercase">Listado Detallado de Registros Únicos</h4>
+                <span id="row-count" class="text-[11px] font-black bg-slate-800 text-white px-4 py-1 rounded-full">0 REGISTROS</span>
+            </div>
+            <div class="table-container">
+                <table id="main-table" class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 sticky top-0 z-10">
+                        <tr class="text-[10px] uppercase text-slate-500 font-black">
+                            <th class="px-6 py-4">ID Plantel</th>
+                            <th class="px-6 py-4">Plantel</th>
+                            <th class="px-6 py-4">Docente</th>
+                            <th class="px-6 py-4">Materia</th>
+                            <th class="px-6 py-4 text-center">Estatus</th>
+                            <th class="px-6 py-4 text-center">Sem/Turno</th>
+                            <th class="px-6 py-4 text-center">Parcial</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="text-[12px] divide-y divide-slate-100 bg-white"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rawData = [];
+        let filteredUnique = [];
+        const GITHUB_DATA_URL = 'datos.json'; // URL relativa al archivo en GitHub
+
+        window.onload = () => {
+            fetchData();
+        };
+
+        // Función para obtener datos desde GitHub
+        async function fetchData() {
+            try {
+                const response = await fetch(GITHUB_DATA_URL);
+                if (!response.ok) throw new Error("No se pudo cargar el archivo datos.json");
+                
+                const data = await response.json();
+                processIncomingData(data);
+                console.log("Datos cargados exitosamente desde GitHub");
+            } catch (err) {
+                console.warn("Carga desde GitHub fallida, intentando con localStorage:", err.message);
+                const stored = localStorage.getItem('academicData');
+                if (stored) {
+                    processIncomingData(JSON.parse(stored));
+                }
+            }
+        }
+
+        // Procesa y limpia los datos cargados
+        function processIncomingData(data) {
+            rawData = Array.isArray(data) ? data : [data];
+            localStorage.setItem('academicData', JSON.stringify(rawData));
+            document.getElementById('total-raw').innerText = rawData.length;
+            populateFilters();
+            applyFilters();
+        }
+
+        document.getElementById('jsonInput').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    processIncomingData(data);
+                } catch (err) { alert("Error en el archivo JSON"); }
+            };
+            reader.readAsText(e.target.files[0]);
+        });
+
+        function populateFilters() {
+            const fields = {
+                'f-plantel': 'plantel', 'f-docente': 'docente', 'f-estatus': 'Estatus',
+                'f-materia': 'materia', 'f-semestre': 'semestre', 'f-turno': 'turno',
+                'f-parcial': 'parcial', 'f-fecha': 'fec_elaboracion'
+            };
+            Object.keys(fields).forEach(id => {
+                const select = document.getElementById(id);
+                const values = [...new Set(rawData.map(item => String(item[fields[id]] || '').trim()))].sort();
+                select.innerHTML = `<option value="">Todos</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
+            });
+        }
+
+        function applyFilters() {
+            const f = {
+                plantel: document.getElementById('f-plantel').value,
+                docente: document.getElementById('f-docente').value,
+                Estatus: document.getElementById('f-estatus').value,
+                materia: document.getElementById('f-materia').value,
+                semestre: document.getElementById('f-semestre').value,
+                turno: document.getElementById('f-turno').value,
+                parcial: document.getElementById('f-parcial').value,
+                fec_elaboracion: document.getElementById('f-fecha').value
+            };
+
+            let filtered = rawData.filter(d => {
+                return Object.keys(f).every(key => f[key] === "" || String(d[key] || '').trim() === f[key]);
+            });
+
+            const seen = new Set();
+            filteredUnique = filtered.filter(item => {
+                const key = `${String(item.plantel).trim()}-${item.idMateria}-${item.semestre}-${String(item.turno).trim()}-${String(item.grupos).trim()}-${item.parcial}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            updateDashboard(filteredUnique);
+        }
+
+        function updateDashboard(data) {
+            const aprobadas = data.filter(d => String(d.Estatus).toLowerCase() === "aprobadas").length;
+            const porcCumplimiento = data.length > 0 ? (aprobadas / data.length) * 100 : 0;
+
+            document.getElementById('kpi-total').innerText = data.length;
+            document.getElementById('kpi-cumplimiento').innerText = porcCumplimiento.toFixed(1) + '%';
+            document.getElementById('kpi-materias').innerText = [...new Set(data.map(d => d.idMateria))].length;
+            document.getElementById('kpi-docentes').innerText = [...new Set(data.map(d => d.docente))].length;
+            document.getElementById('row-count').innerText = `${data.length} REGISTROS ÚNICOS`;
+
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = data.map(d => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-mono text-slate-500 text-[11px]">${d.idPlantel || 'N/A'}</td>
+                    <td class="px-6 py-4 text-slate-500 font-bold">${d.plantel}</td>
+                    <td class="px-6 py-4 font-bold text-slate-800">${String(d.docente).trim()}</td>
+                    <td class="px-6 py-4 text-slate-600 font-medium text-[11px]">${d.materia}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${String(d.Estatus).toLowerCase() === 'aprobadas' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">
+                            ${d.Estatus}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center font-bold text-slate-700">${d.semestre}º ${d.turno}</td>
+                    <td class="px-6 py-4 text-center"><span class="bg-slate-900 text-white px-3 py-1 rounded text-[10px] font-bold">P${d.parcial}</span></td>
+                </tr>
+            `).join('');
+
+            renderCharts(data, porcCumplimiento);
+        }
+
+        function renderCharts(data, cumplimiento) {
+            const config = { responsive: true, displayModeBar: false };
+            const layoutBase = { 
+                margin: { t: 20, b: 30, l: 30, r: 20 }, 
+                paper_bgcolor: 'rgba(0,0,0,0)', 
+                plot_bgcolor: 'rgba(0,0,0,0)', 
+                font: { size: 10 } 
+            };
+
+            const semData = {}; data.forEach(d => semData[d.semestre + 'º'] = (semData[d.semestre + 'º'] || 0) + 1);
+            Plotly.newPlot('chart-semestre', [{
+                x: Object.keys(semData), y: Object.values(semData),
+                type: 'bar', marker: { color: '#6366f1' }
+            }], layoutBase, config);
+
+            const parData = {}; data.forEach(d => parData['P' + d.parcial] = (parData['P' + d.parcial] || 0) + 1);
+            Plotly.newPlot('chart-parcial', [{
+                x: Object.keys(parData), y: Object.values(parData),
+                type: 'bar', marker: { color: '#f59e0b' }
+            }], layoutBase, config);
+
+            Plotly.newPlot('chart-gauge', [{
+                type: "indicator",
+                mode: "gauge+number",
+                value: cumplimiento,
+                number: { suffix: "%", font: { size: 30 } },
+                gauge: {
+                    axis: { range: [0, 100], tickwidth: 1 },
+                    bar: { color: "#10b981" },
+                    bgcolor: "white",
+                    borderwidth: 2,
+                    bordercolor: "#e2e8f0",
+                    steps: [{ range: [0, 100], color: "#f1f5f9" }]
+                }
+            }], { ...layoutBase, margin: { t: 50, b: 20, l: 30, r: 30 } }, config);
+        }
+
+        function exportToExcel() {
+            if (filteredUnique.length === 0) return alert("No hay datos para exportar");
+            const headers = ["ID Plantel", "Plantel", "Docente", "Materia", "Estatus", "Semestre", "Turno", "Grupos", "Parcial"];
+            const rows = filteredUnique.map(d => [
+                d.idPlantel, d.plantel, String(d.docente).trim(), d.materia, d.Estatus, d.semestre, d.turno, String(d.grupos).trim(), d.parcial
+            ]);
+            
+            let csvContent = "\uFEFF";
+            csvContent += headers.join(",") + "\n";
+            rows.forEach(row => {
+                csvContent += row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(",") + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "reporte_planeaciones_unicas.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearData() { if(confirm("¿Limpiar base de datos y recargar?")) { localStorage.clear(); location.reload(); } }
+    </script>
+</body>
+</html>
